@@ -34,7 +34,7 @@ SwimWorkoutBuilder/
 └── WorkoutAggregationTest.java
 
 ---
-```text
+```
 
 ## 🚀 Features (MVP)
 - **Workout hierarchy**:  
@@ -46,7 +46,7 @@ SwimWorkoutBuilder/
 - **Unit conversion**: Distances stored canonically in meters, but displayed in workout’s course unit (SCY, SCM, LCM).
 
 ---
-
+```
 ## 📊 Example Output
 /Library/Java/JavaVirtualMachines/jdk-24.jdk/Contents/Home/bin/java -javaagent:/Applications/Utilities/IntelliJ IDEA CE.app/Contents/lib/idea_rt.jar=53155 -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -classpath /Users/parkerblackwell/Documents/IntelliJProjects/SwimWorkoutBuilder/out/production/SwimWorkoutBuilder swimworkoutbuilder.Main
 🏊 SwimWorkoutBuilder is running!
@@ -145,7 +145,7 @@ Breakdown by test class:
 - `WorkoutAggregationTest` – 1 passed
 
 **Summary:** ✅ *All tests passed successfully (14/14).*
-'''
+```
 https://github.com/pblackwell-ivy/SwimWorkoutBuilder
 
 📌 Notes
