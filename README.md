@@ -145,6 +145,8 @@ Breakdown by test class:
 - `WorkoutAggregationTest` – 1 passed
 
 **Summary:** ✅ *All tests passed successfully (14/14).*
+'''
+https://github.com/pblackwell-ivy/SwimWorkoutBuilder
 
 📌 Notes
 	•	This is an MVP console app; no JavaFX GUI yet.
