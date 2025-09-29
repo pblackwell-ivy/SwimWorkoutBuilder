@@ -6,7 +6,6 @@ The goal of this stage of the project is to design a **console-based MVP (Minimu
 ---
 
 ## 📂 Project Structure
-## Project Structure
 ```text
 SwimWorkoutBuilder/
 ├── src/swimworkoutbuilder/
