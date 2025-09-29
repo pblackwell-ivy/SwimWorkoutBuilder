@@ -6,6 +6,7 @@ The goal of this stage of the project is to design a **console-based MVP (Minimu
 ---
 
 ## 📂 Project Structure
+## Project Structure
 SwimWorkoutBuilder/
 ├── src/swimworkoutbuilder/
 │   ├── Main.java                 # Entry point – builds a sample workout and prints summary
