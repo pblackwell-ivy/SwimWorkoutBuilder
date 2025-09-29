@@ -122,6 +122,30 @@ Totals:
 
 
 Process finished with exit code 0
+
+## J Unit 5 Test Results
+## ✅ Test Results
+
+All unit tests were executed using **JUnit 5** in IntelliJ IDEA.
+
+- **Total tests:** 14  
+- **Passed:** 14  
+- **Failed:** 0  
+- **Ignored/Skipped:** 0  
+
+Breakdown by test class:
+- `SeedPace100Test` – 2 passed
+- `SetGroupTest` – 1 passed
+- `EnumsTest` – 3 passed
+- `HelloJUnitTest` – 1 passed
+- `PacePolicyTest` – 1 passed
+- `SwimSetTest` – 2 passed
+- `DefaultPacePolicyTest` – 2 passed
+- `SwimmerTest` – 1 passed
+- `WorkoutAggregationTest` – 1 passed
+
+**Summary:** ✅ *All tests passed successfully (14/14).*
+
 📌 Notes
 	•	This is an MVP console app; no JavaFX GUI yet.
 	•	Distances are stored canonically in meters internally, but converted to yards/meters for display based on course.
