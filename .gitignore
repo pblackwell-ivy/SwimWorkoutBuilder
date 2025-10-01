@@ -1,29 +1,49 @@
-### IntelliJ IDEA ###
+# -------------------------
+# IntelliJ IDEA
+# -------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# -------------------------
+# Compiled output
+# -------------------------
 out/
-!**/src/main/**/out/
-!**/src/test/**/out/
+build/
+target/
+*.class
 
-### Eclipse ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+# -------------------------
+# Logs
+# -------------------------
+*.log
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### VS Code ###
-.vscode/
-
-### Mac OS ###
+# -------------------------
+# OS-specific junk
+# -------------------------
 .DS_Store
+Thumbs.db
+
+# -------------------------
+# Local libs / dependencies
+# -------------------------
+lib/
+*.jar
+
+# -------------------------
+# Documentation & sandbox (not tracked in GitHub)
+# -------------------------
+docs/
+sandbox/
+
+# -------------------------
+# Maven / Gradle (in case you add them later)
+# -------------------------
+.mvn/
+.settings/
+.classpath
+.project
+.gradle/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
