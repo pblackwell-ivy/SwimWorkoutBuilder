@@ -11,7 +11,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 import static swimworkoutbuilder.model.utils.Distance.MultipleRounding;
-
+import static swimworkoutbuilder.model.utils.Distance.yardsToMeters;
 
 /**
  * Represents a single training set (e.g., "8 × 50 FREESTYLE @ ENDURANCE").

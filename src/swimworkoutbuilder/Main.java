@@ -21,7 +21,6 @@ import static swimworkoutbuilder.model.utils.Distance.yardsToMeters;
 public class Main {
     public static void main(String[] args) {
         System.out.println("🏊 SwimWorkoutBuilder is running!");
-
         // 1) Swimmer
         Swimmer swimmer = new Swimmer("Parker", "Blackwell", "", "Indy Aquatic Masters");
 
@@ -38,6 +37,7 @@ public class Main {
                 "Demo workout to validate pacing and totals.",
                 60 // default rest between groups (seconds)
         );
+
         Course course = w.getCourse(); // convenience
 
         // 4) Groups

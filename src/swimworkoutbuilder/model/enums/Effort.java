@@ -11,7 +11,7 @@ public enum Effort {
             "Easy",
             "Warmup/cooldown, active recovery",
             "Active recovery, technique focus, light pace, minimal exertion. Used between challenging sets or for warm-up/cool-down.",
-            1.70, 10
+            1.55, 20    // <- was 1.70, but think it's between 1.45 and 1.50.  Will tune more.
     ),
     ENDURANCE(
             "Endurance",
@@ -23,7 +23,7 @@ public enum Effort {
             "Threshold",
             "Strong, controlled pace",
             "Lactate threshold effort. Strong but controlled pace, just below race intensity. Can sustain repeats of 3–5 minutes with short rest.",
-            1.22, 20
+            1.22, 10
     ),
     RACE_PACE(
             "Race Pace",

@@ -21,56 +21,85 @@ import swimworkoutbuilder.model.enums.CourseUnit;
  *    keeping the model clean and avoiding duplicated math.
  *
  * Example usage:
- *   int poolLen = Distance.poolLengthMeters(Course.SCY); // -> 25 * 0.9144 = 23m approx
+ *   int poolLen = Distance.poolLengthMeters(Course.SCY); // -> ~23 (rounded from 22.86)
  *   int legalDistance = Distance.toMultipleOfCourse(73, Course.LCM, Distance.MultipleRounding.UP); // -> 100
  *   double inSeedUnits = Distance.metersToSeedUnits(50, CourseUnit.YARDS); // -> 54.68 yd
  */
 public final class Distance {
     private Distance() {}
 
-    // --- Existing utilities ---
+    // --- Conversions ---
+
+    /** Convert meters to the seed unit (yards or meters). */
     public static double metersToSeedUnits(double meters, CourseUnit seedUnit) {
         return (seedUnit == CourseUnit.YARDS) ? meters / 0.9144 : meters;
     }
 
+    /** Scale an arbitrary distance (already in the seed unit) into 100s (e.g., 50 → 0.5). */
     public static double distance100s(double distanceInSeedUnits) {
         return distanceInSeedUnits / 100.0;
     }
 
+    /** Convert yards to meters, rounding to the nearest whole meter for canonical storage. */
     public static int yardsToMeters(int yards) {
-        return (int) Math.round(yards * 0.9144);
+        return (int) Math.round(yardsToMetersExact(yards));
     }
 
-    // --- New helpers for pool-aware snapping ---
+    /** Exact yards→meters conversion (no rounding). Useful for precise snapping math. */
+    public static double yardsToMetersExact(double yards) {
+        return yards * 0.9144;
+    }
 
-    /** Pool length in meters for a given course (SCY/SCM/LCM). */
-    public static int poolLengthMeters(Course course) {
+    // --- Pool lengths ---
+
+    /**
+     * Exact pool length in meters for a given course.
+     * SCY uses 25 * 0.9144 = 22.86 m (double), SCM=25.0 m, LCM=50.0 m.
+     */
+    public static double poolLengthMetersExact(Course course) {
         if (course == null) throw new IllegalArgumentException("course must not be null");
         return (course.getUnit() == CourseUnit.YARDS)
-                ? yardsToMeters(course.getLength())
-                : course.getLength();
+                ? course.getLength() * 0.9144         // 25y -> 22.86 m
+                : (double) course.getLength();         // 25m or 50m
     }
+
+    /**
+     * Integer pool length in meters for legacy call sites.
+     * Returns Math.round(poolLengthMetersExact(course)).
+     */
+    public static int poolLengthMeters(Course course) {
+        return (int) Math.round(poolLengthMetersExact(course));
+    }
+
+    // --- Distance normalization ---
 
     public enum MultipleRounding { NEAREST, UP, DOWN }
 
     /**
      * Snap an arbitrary distance (meters) to a legal multiple of the pool length.
-     * Use UP to mimic apps that round 25 → 50 in a 50m pool, etc.
+     * Uses exact (double) pool length to avoid SCY drift (e.g., 400 yd ↔ 365.76 m).
+     *
+     * @param meters distance to snap (meters, integer canonical)
+     * @param course course context (SCY/SCM/LCM)
+     * @param mode   rounding policy (UP, DOWN, NEAREST)
+     * @return snapped distance in meters (integer canonical)
      */
     public static int toMultipleOfCourse(int meters, Course course, MultipleRounding mode) {
-        int L = poolLengthMeters(course);
+        double L = poolLengthMetersExact(course);
         if (L <= 0) throw new IllegalArgumentException("Invalid pool length for " + course);
-        if (meters <= 0) return L;
+        if (meters <= 0) return (int) Math.round(L);
 
-        int q = meters / L;
-        int r = meters % L;
-        if (r == 0) return meters;
+        double q = Math.floor(meters / L);
+        double base = q * L;
+        double r = meters - base;
 
+        double snapped;
         switch (mode) {
-            case DOWN:    return q * L;
-            case UP:      return (q + 1) * L;
+            case DOWN:    snapped = base; break;
+            case UP:      snapped = (q + 1.0) * L; break;
             case NEAREST:
-            default:      return (r < L - r) ? q * L : (q + 1) * L;
+            default:      snapped = (r < L - r) ? base : (q + 1.0) * L; break;
         }
+        return (int) Math.round(snapped);
     }
 }
