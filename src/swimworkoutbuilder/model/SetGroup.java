@@ -1,5 +1,7 @@
 package swimworkoutbuilder.model;
 
+import swimworkoutbuilder.model.units.Distance;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -64,19 +66,38 @@ public class SetGroup {
         return sets.size();
     }
 
-    // Distance helpers (meters, since SwimSet stores meters)
-    /** Sum of all sets' distance for a single pass of the group (meters). */
-    public int singlePassDistanceMeters() {
-        int sum = 0;
+    // ---- Distance helpers (Distance-aware) ----
+
+    /** Sum of all sets' distance for a single pass of the group (exact Distance). */
+    public Distance singlePassDistance() {
+        long totalUm4 = 0L; // sum in canonical 0.0001 m units
         for (SwimSet s : sets) {
-            sum += s.getReps() * s.getDistancePerRepMeters();
+            long perRepUm4 = s.getDistancePerRep().rawUm4();
+            totalUm4 = Math.addExact(totalUm4, Math.multiplyExact(perRepUm4, s.getReps()));
         }
-        return sum;
+        // Totals are generally displayed in meters; choose METERS as display unit.
+        return Distance.ofCanonicalUm4(totalUm4, Distance.Unit.METERS);
     }
 
-    /** Total distance including group repeats (meters). */
+    /** Total distance including group repeats (exact Distance). */
+    public Distance totalDistance() {
+        long singleUm4 = singlePassDistance().rawUm4();
+        long totalUm4  = Math.multiplyExact(singleUm4, Math.max(1, (long) reps));
+        return Distance.ofCanonicalUm4(totalUm4, Distance.Unit.METERS);
+    }
+
+    // ---- Legacy meter helpers (kept for compatibility) ----
+
+    /** Sum of all sets' distance for a single pass of the group (meters, rounded). */
+    @Deprecated
+    public int singlePassDistanceMeters() {
+        return (int) Math.round(singlePassDistance().toMeters());
+    }
+
+    /** Total distance including group repeats (meters, rounded). */
+    @Deprecated
     public int totalDistanceMeters() {
-        return singlePassDistanceMeters() * Math.max(1, reps);
+        return (int) Math.round(totalDistance().toMeters());
     }
 
     @Override

@@ -1,10 +1,7 @@
 package swimworkoutbuilder.tests;
 
 import org.junit.jupiter.api.Test;
-import swimworkoutbuilder.model.SeedPace100;
 import swimworkoutbuilder.model.enums.CourseUnit;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class SeedPace100Test {
 

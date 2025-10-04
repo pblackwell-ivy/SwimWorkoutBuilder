@@ -1,7 +1,6 @@
 package swimworkoutbuilder.tests;
 
 import org.junit.jupiter.api.Test;
-import swimworkoutbuilder.model.SeedPace100;
 import swimworkoutbuilder.model.Swimmer;
 import swimworkoutbuilder.model.enums.CourseUnit;
 import swimworkoutbuilder.model.enums.StrokeType;

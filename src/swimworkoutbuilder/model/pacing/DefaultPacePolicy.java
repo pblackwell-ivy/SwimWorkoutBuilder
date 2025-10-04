@@ -1,119 +1,90 @@
 package swimworkoutbuilder.model.pacing;
 
-import swimworkoutbuilder.model.SeedPace100;
 import swimworkoutbuilder.model.SwimSet;
 import swimworkoutbuilder.model.Swimmer;
 import swimworkoutbuilder.model.Workout;
-import swimworkoutbuilder.model.enums.CourseUnit;
-import swimworkoutbuilder.model.enums.DistanceFactors;   // still used in goal calc
+import swimworkoutbuilder.model.enums.DistanceFactors;
 import swimworkoutbuilder.model.enums.Effort;
 import swimworkoutbuilder.model.enums.Equipment;
 import swimworkoutbuilder.model.enums.StrokeType;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**
  * Multiplier-based MVP policy for computing goal, interval, and rest.
- * The seed pace per 100 (by stroke, in its own units) is the baseline.
  *
- * Effort-aware distance logic:
- *  - EASY / ENDURANCE: distance multiplier is skipped (flat pacing across distance).
- *  - THRESHOLD / RACE_PACE / VO2_MAX / SPRINT: apply DistanceFactors (longer reps drift slower).
- *
- * Rest policy (automatic scaling):
- *  - Rest is computed as a % of the goal time, based on effort and distance ratio r=(rep/100).
- *  - Intervals (goal + rest) are rounded to the nearest 5 seconds.
+ * Core design:
+ *  • Canonical math is done with speed (m/s) derived from the swimmer's SeedPace.
+ *  • Goal time (seconds) = (repDistanceMeters / speedMps) × compositeFactor
+ *      where compositeFactor = effort × distanceBucket × course × equipment × fatigue(=1.0 for MVP)
+ *  • Rest time (seconds) = rounded(goal) × restPercent(effort, r),
+ *      where r = (rep distance) / (seed's original distance)
+ *  • Interval rounded to nearest 5 seconds.
  *
  * Notes:
- * - Distances are stored internally in meters in SwimSet.
- * - We convert the repeat distance into the seed’s units (yards/meters) before dividing by 100.
- * - Course multiplier captures performance differences (turns/underwater) separate from unit conversion.
- * - A fatigue multiplier hook exists but is disabled for MVP.
+ *  • DistanceFactors accepts Distance directly and buckets by nominal meters (25/50/75/...).
+ *  • No floating-point unit conversions inside core math; Distance is exact internally.
  */
 public class DefaultPacePolicy implements PacePolicy {
 
-    private static final double YARD_TO_METER = 0.9144;
-    private static final double METER_TO_YARD = 1.0 / YARD_TO_METER;
-
     // Flip to false to silence debug printing
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     @Override
     public double goalSeconds(Workout workout, SwimSet set, Swimmer swimmer, int repIndex) {
-        Objects.requireNonNull(workout, "workout");
-        Objects.requireNonNull(set, "set");
-        Objects.requireNonNull(swimmer, "swimmer");
+        if (workout == null || set == null || swimmer == null)
+            throw new IllegalArgumentException("workout, set, and swimmer are required.");
 
-        // 1) Seed per-100 (seconds) and its units
+        // 1) Seed (canonical speed)
         StrokeType stroke = set.getStroke();
-        SeedPace100 seed = swimmer.getSeedTime(stroke);
-        if (seed == null) {
-            throw new IllegalStateException("Missing seed for stroke: " + stroke);
-        }
-        double seedPer100Sec = seed.getSeedTimeSec();
-        CourseUnit seedUnit = seed.getCourseUnit();
+        SeedPace seed = swimmer.getSeedTime(stroke);
+        if (seed == null) throw new IllegalStateException("Missing seed for stroke: " + stroke);
+        double speedMps = seed.speedMps(); // canonical
 
-        // 2) Convert repeat distance (stored in meters) into the seed's units
-        double repDistanceInSeedUnits =
-                (seedUnit == CourseUnit.YARDS)
-                        ? set.getDistancePerRepMeters() * METER_TO_YARD
-                        : set.getDistancePerRepMeters();
-
-        // 3) Gather multipliers
+        // 2) Multipliers
         Effort effort = set.getEffort();
         double mEffort  = (effort == null) ? 1.0 : effort.paceMultiplier();
-        double mDist    = usesDistanceFactor(effort)
-                ? DistanceFactors.forDistance(set.getDistancePerRepMeters())
-                : 1.0; // EASY/ENDURANCE => flat pacing across distance
+        double mDist    = usesDistanceFactor(effort) ? DistanceFactors.forDistance(set.getDistancePerRep()) : 1.0;
         double mCourse  = workout.getCourse().multiplier();
         double mEquip   = equipmentProduct(set.getEquipment());
+        double mFatigue = 1.0; // hook for future
 
-        // Future hook: fatigue multiplier (depends on repIndex, set order, etc.)
-        double mFatigue = 1.0;
-
-        // 4) Scale seed by distance/100 in seed units, then apply multipliers
-        double distanceScale = repDistanceInSeedUnits / 100.0;
-        double goal = seedPer100Sec * distanceScale * mEffort * mDist * mCourse * mEquip * mFatigue;
+        // 3) Distance in meters (canonical), compute goal
+        double repMeters = set.getDistancePerRep().toMeters();
+        double goal = (repMeters / speedMps) * mEffort * mDist * mCourse * mEquip * mFatigue;
 
         if (DEBUG) {
             System.out.printf(
-                    "[DEBUG] %s rep #%d calc: %.2fs × %.2f (effort) × %.2f (dist%s) × %.2f (course) × %.2f (equip) × %.2f (fatigue) × %.2f (rep/100) = %.2fs%n",
+                    "[DEBUG] %s rep #%d goal: (%.2fm / %.4f m/s) × %.2f(effort) × %.2f(dist) × %.2f(course) × %.2f(equip) × %.2f(fatigue) = %.2fs%n",
                     stroke, repIndex + 1,
-                    seedPer100Sec,
-                    mEffort,
-                    mDist, usesDistanceFactor(effort) ? "" : " skipped",
-                    mCourse,
-                    mEquip,
-                    mFatigue,
-                    distanceScale,
-                    goal
+                    repMeters, speedMps, mEffort, mDist, mCourse, mEquip, mFatigue, goal
             );
         }
-
         return goal;
     }
 
-    // ---------- NEW: interval uses rounded-to-5s and rest scales with effort × distance ----------
-
     @Override
     public int restSeconds(Workout workout, SwimSet set, Swimmer swimmer, int repIndex) {
+        if (workout == null || set == null || swimmer == null)
+            throw new IllegalArgumentException("workout, set, and swimmer are required.");
+
+        // Round goal first, then compute rest as a percentage
         int goalRounded = (int) Math.round(goalSeconds(workout, set, swimmer, repIndex));
 
-        // rep distance in SEED units → r = (rep/100)
-        SeedPace100 seed = swimmer.getSeedTime(set.getStroke());
+        // r = (rep distance) / (seed's original distance)
+        SeedPace seed = swimmer.getSeedTime(set.getStroke());
         if (seed == null) throw new IllegalStateException("Missing seed for " + set.getStroke());
-        double repDistanceInSeedUnits = (seed.getCourseUnit() == CourseUnit.YARDS)
-                ? set.getDistancePerRepMeters() * METER_TO_YARD
-                : set.getDistancePerRepMeters();
-        double r = distanceRatio(repDistanceInSeedUnits);
+
+        double repMeters  = set.getDistancePerRep().toMeters();
+        double seedMeters = seed.getOriginalDistance().toMeters(); // e.g., 100y or 100m (in meters)
+        double r = distanceRatio(repMeters, seedMeters);
 
         double pct = restPercent(set.getEffort(), r);
         int rest = (int) Math.round(goalRounded * pct);
 
         if (DEBUG) {
-            System.out.printf("[DEBUG-REST] r=%.2f, effort=%s, rest%%=%.1f%% -> rest=%ds%n",
-                    r, set.getEffort(), pct * 100.0, rest);
+            System.out.printf("[DEBUG-REST] r=%.2f (rep=%.2fm / seed=%.2fm), effort=%s, rest%%=%.1f%% -> rest=%ds%n",
+                    r, repMeters, seedMeters, set.getEffort(), pct * 100.0, rest);
         }
         return Math.max(0, rest);
     }
@@ -131,9 +102,8 @@ public class DefaultPacePolicy implements PacePolicy {
     }
 
     @Override
-    public String timingLabel(Workout workout, SwimSet set) {
-        // Preserve legacy label behavior
-        int rest = restSeconds(workout, set, null, 0); // swimmer not used in this path; safe here
+    public String timingLabel(Workout workout, SwimSet set, Swimmer swimmer, int repIndex) {
+        int rest = restSeconds(workout, set, swimmer, repIndex);
         return "rest :" + rest;
     }
 
@@ -163,11 +133,11 @@ public class DefaultPacePolicy implements PacePolicy {
         return m;
     }
 
-    // ---- NEW helpers for rest scaling & interval rounding ----
-
-    /** Distance ratio r = (rep distance in seed units) / 100, clamped to avoid degenerate values. */
-    private static double distanceRatio(double repDistanceInSeedUnits) {
-        return Math.max(0.1, repDistanceInSeedUnits / 100.0);
+    /** Distance ratio r = rep / seedBase, clamped to avoid degenerate values. */
+    private static double distanceRatio(double repMeters, double seedMeters) {
+        double base = (seedMeters <= 0.0) ? 100.0 : seedMeters; // fallback: per-100m baseline
+        double r = repMeters / base;
+        return Math.max(0.1, r);
     }
 
     private static double lerp(double a, double b, double t) {
@@ -184,12 +154,12 @@ public class DefaultPacePolicy implements PacePolicy {
     }
 
     /**
-     * Rest percentage as a function of effort and distance ratio r = rep/100.
-     * Curves chosen from your MySwimPro sample + coaching intuition:
-     *  - EASY: ~10% at <=100, ~18% by 400, taper toward ~5% for 1500+
+     * Rest percentage as a function of effort and distance ratio r.
+     * Curves chosen from prior notes:
+     *  - EASY: ~10% at <=1.0, ~18% by 4.0, taper toward ~5% very long
      *  - ENDURANCE: ~4–5% nearly flat
-     *  - THRESHOLD: ~6.7% at <=100 easing toward ~4% long
-     *  - RACE/VO2/SPRINT: ~70% at <=100, ~25% by 400, ~5% very long
+     *  - THRESHOLD: ~6.7% at <=1.0 easing toward ~4% long
+     *  - RACE/VO2/SPRINT: ~70% at <=1.0, ~25% by 4.0, ~5% very long
      */
     private static double restPercent(Effort e, double r) {
         if (e == null) return 0.06;

@@ -5,9 +5,6 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.Alert;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
@@ -19,21 +16,19 @@ import javafx.scene.input.TransferMode;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-import swimworkoutbuilder.model.SeedPace100;
 import swimworkoutbuilder.model.SetGroup;
 import swimworkoutbuilder.model.SwimSet;
 import swimworkoutbuilder.model.Swimmer;
 import swimworkoutbuilder.model.Workout;
 import swimworkoutbuilder.model.enums.Course;
-import swimworkoutbuilder.model.enums.CourseUnit;
 import swimworkoutbuilder.model.enums.Effort;
 import swimworkoutbuilder.model.enums.StrokeType;
-
+import swimworkoutbuilder.model.pacing.SeedPace;
+import swimworkoutbuilder.model.units.Distance;
+import swimworkoutbuilder.model.units.TimeSpan;
 
 import java.util.Collections;
 import java.util.List;
-
-import static swimworkoutbuilder.model.utils.Distance.yardsToMeters;
 
 /**
  * MainView.fxml controller: renders Workout tree, supports DnD reordering,
@@ -79,6 +74,7 @@ public class MainViewController {
         courseChoice.getItems().setAll(Course.SCY, Course.SCM, Course.LCM);
         courseChoice.setValue(Course.SCY); // default for now
     }
+
     @FXML private javafx.scene.control.TextArea previewArea;
 
     private void refreshPreview() {
@@ -98,10 +94,11 @@ public class MainViewController {
 
             int si = 1;
             for (SwimSet s : g.getSets()) {
+                String strokeShort = (s.getStroke() == null) ? "" : s.getStroke().getShortLabel();
                 sb.append("   ").append(si++).append(". ")
                         .append(s.getReps()).append("x")
                         .append(displayDistance(s)).append(" ")
-                        .append(s.getStroke());
+                        .append(strokeShort);
                 if (s.getEffort() != null) sb.append("  ").append(s.getEffort().getLabel());
                 if (s.getNotes() != null && !s.getNotes().isBlank()) sb.append(" — ").append(s.getNotes());
                 sb.append("\n");
@@ -119,10 +116,12 @@ public class MainViewController {
 
         // Demo data to make the screen useful before wiring AppState.
         Swimmer swimmer = new Swimmer("Parker", "Blackwell", "", "Indy Aquatic Masters");
-        swimmer.updateSeedTime(StrokeType.FREESTYLE,  new SeedPace100(78.0,  CourseUnit.YARDS));
-        swimmer.updateSeedTime(StrokeType.FREE_KICK,  new SeedPace100(118.0, CourseUnit.YARDS));
-        swimmer.updateSeedTime(StrokeType.DRILL,      new SeedPace100(110.0, CourseUnit.YARDS));
-
+        swimmer.updateSeedTime(StrokeType.FREESTYLE,
+                new SeedPace(Distance.ofYards(100), TimeSpan.ofSeconds(78.0)));   // 1:18 / 100y
+        swimmer.updateSeedTime(StrokeType.KICK,
+                new SeedPace(Distance.ofYards(100), TimeSpan.ofSeconds(118.0)));  // 1:58 / 100y
+        swimmer.updateSeedTime(StrokeType.DRILL,
+                new SeedPace(Distance.ofYards(100), TimeSpan.ofSeconds(110.0)));  // 1:50 / 100y
 
         Workout w = new Workout(
                 swimmer.getId(),
@@ -140,22 +139,23 @@ public class MainViewController {
 
         Collections.addAll(w.getGroups(), warmup, drills, main, cooldown);
 
-        warmup.addSet(new SwimSet(StrokeType.FREESTYLE, 1, yardsToMeters(400), Effort.EASY,      course, "Perfect Freestyle"));
-        warmup.addSet(new SwimSet(StrokeType.FREE_KICK, 4, yardsToMeters(50),  Effort.EASY,      course, "Kick w/ streamline"));
+        // Sets (SwimSet now takes Distance directly)
+        warmup.addSet(new SwimSet(StrokeType.FREESTYLE, 1, Distance.ofYards(400), Effort.EASY,      course, "Perfect Freestyle"));
+        warmup.addSet(new SwimSet(StrokeType.KICK,      4, Distance.ofYards(50),  Effort.EASY,      course, "Kick w/ streamline"));
 
-        drills.addSet(new SwimSet(StrokeType.DRILL,     2, yardsToMeters(50),  Effort.ENDURANCE, course, "3 strokes / 6 kicks drill"));
-        drills.addSet(new SwimSet(StrokeType.FREESTYLE, 1, yardsToMeters(50),  Effort.EASY,      course, "Apply the drill"));
-        drills.addSet(new SwimSet(StrokeType.DRILL,     2, yardsToMeters(50),  Effort.ENDURANCE, course, "Rhythm drill"));
-        drills.addSet(new SwimSet(StrokeType.FREESTYLE, 1, yardsToMeters(50),  Effort.EASY,      course, "Apply the drill"));
+        drills.addSet(new SwimSet(StrokeType.DRILL,     2, Distance.ofYards(50),  Effort.ENDURANCE, course, "3 strokes / 6 kicks drill"));
+        drills.addSet(new SwimSet(StrokeType.FREESTYLE, 1, Distance.ofYards(50),  Effort.EASY,      course, "Apply the drill"));
+        drills.addSet(new SwimSet(StrokeType.DRILL,     2, Distance.ofYards(50),  Effort.ENDURANCE, course, "Rhythm drill"));
+        drills.addSet(new SwimSet(StrokeType.FREESTYLE, 1, Distance.ofYards(50),  Effort.EASY,      course, "Apply the drill"));
 
-        main.addSet(new SwimSet(StrokeType.FREESTYLE,   4, yardsToMeters(50),  Effort.RACE_PACE, course, "USRPT style"));
-        main.addSet(new SwimSet(StrokeType.FREESTYLE,   1, yardsToMeters(50),  Effort.EASY,      course, "Active recovery"));
+        main.addSet(new SwimSet(StrokeType.FREESTYLE,   4, Distance.ofYards(50),  Effort.RACE_PACE, course, "USRPT style"));
+        main.addSet(new SwimSet(StrokeType.FREESTYLE,   1, Distance.ofYards(50),  Effort.EASY,      course, "Active recovery"));
 
-        cooldown.addSet(new SwimSet(StrokeType.FREESTYLE,4, yardsToMeters(50),  Effort.EASY,      course, "Silent swimming"));
+        cooldown.addSet(new SwimSet(StrokeType.FREESTYLE, 4, Distance.ofYards(50), Effort.EASY, course, "Silent swimming"));
 
         setCurrentSwimmer(swimmer);          // show the current swimmer in the right sidebar
         initCourseChoice();                  // populate the choicebox
-        if (courseChoice == null) {
+        if (courseChoice != null) {
             courseChoice.setValue(w.getCourse()); // keep UI in sync with demo workout (SCY/SCM/LCM)
         }
         setWorkout(w);
@@ -237,7 +237,8 @@ public class MainViewController {
                     setText("▪ " + g.getName() + reps);
                 } else if (value instanceof SwimSet s) {
                     String effort = (s.getEffort() != null) ? s.getEffort().getLabel() : "";
-                    setText(s.getReps() + "x" + displayDistance(s) + " " + s.getStroke() + "  " + effort);
+                    String strokeShort = (s.getStroke() == null) ? "" : s.getStroke().getShortLabel();
+                    setText(s.getReps() + "x" + displayDistance(s) + " " + strokeShort + "  " + effort);
                 } else {
                     setText(value.toString());
                 }
@@ -287,10 +288,13 @@ public class MainViewController {
 
     /** Format distance using workout course unit. */
     private String displayDistance(SwimSet s) {
-        int meters = s.getDistancePerRepMeters();
-        if (workout != null && workout.getCourse().getUnit() == CourseUnit.YARDS) {
-            return (int) Math.round(meters / 0.9144) + "yd";
+        if (workout != null && workout.getCourse() == Course.SCY) {
+            // display yards for SCY; snap to 25-yd lap for cleaner UI
+            int yards = (int) Math.round(s.getDistancePerRep().toYards());
+            int snapped = (int) Math.round(yards / 25.0) * 25;
+            return snapped + "yd";
         }
+        int meters = (int) Math.round(s.getDistancePerRep().toMeters());
         return meters + "m";
     }
 

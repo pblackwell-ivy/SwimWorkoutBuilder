@@ -1,14 +1,15 @@
 package swimworkoutbuilder.model.utils;
 
-import swimworkoutbuilder.model.*;
+import swimworkoutbuilder.model.SetGroup;
+import swimworkoutbuilder.model.SwimSet;
+import swimworkoutbuilder.model.Swimmer;
+import swimworkoutbuilder.model.Workout;
 import swimworkoutbuilder.model.enums.Course;
 import swimworkoutbuilder.model.pacing.PacePolicy;
+import swimworkoutbuilder.model.units.Distance;
 
 public final class WorkoutPrinter {
     private WorkoutPrinter() {}
-
-    private static final double YARD_TO_METER = 0.9144;
-    private static final double METER_TO_YARD = 1.0 / YARD_TO_METER;
 
     public static void printWorkout(Workout w, Swimmer swimmer, PacePolicy policy) {
         boolean displayYards = (w.getCourse() == Course.SCY);
@@ -49,20 +50,23 @@ public final class WorkoutPrinter {
 
             int idx = 1;
             for (SwimSet s : g.getSets()) {
-                int reps  = s.getReps();
-                int distM = s.getDistancePerRepMeters();
+                int reps = s.getReps();
+                Distance rep = s.getDistancePerRep();
 
-                // Per-rep display distance (snap to lap size for SCY)
+                // Per-rep display distance (snap to lap size for SCY display)
                 int repDisplayDist = displayYards
-                        ? snapToLapYards(Math.round(distM * (float) METER_TO_YARD))
-                        : distM;
+                        ? snapToLapYards((int) Math.round(rep.toYards()))
+                        : (int) Math.round(rep.toMeters());
+
+                String strokeShort = (s.getStroke() == null) ? "" : s.getStroke().getShortLabel();
 
                 System.out.printf("     %d. %dx%d%s %-14s %-12s%n",
                         idx++,
                         reps,
                         repDisplayDist, unitLabel,
-                        s.getStroke(),
-                        s.getEffort().getLabel());
+                        strokeShort,
+                        (s.getEffort() != null ? s.getEffort().getLabel() : "")
+                );
 
                 for (int r = 1; r <= reps; r++) {
                     double goal  = policy.goalSeconds(w, s, swimmer, r);

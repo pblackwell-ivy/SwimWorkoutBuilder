@@ -1,62 +1,55 @@
 package swimworkoutbuilder.model;
 
 import swimworkoutbuilder.model.enums.Course;
-import swimworkoutbuilder.model.enums.CourseUnit;
 import swimworkoutbuilder.model.enums.Effort;
 import swimworkoutbuilder.model.enums.Equipment;
 import swimworkoutbuilder.model.enums.StrokeType;
-import swimworkoutbuilder.model.utils.Distance;
+import swimworkoutbuilder.model.units.Distance;
 
 import java.util.EnumSet;
 import java.util.Set;
-
-import static swimworkoutbuilder.model.utils.Distance.MultipleRounding;
-import static swimworkoutbuilder.model.utils.Distance.yardsToMeters;
 
 /**
  * Represents a single training set (e.g., "8 × 50 FREESTYLE @ ENDURANCE").
  *
  * Responsibilities:
  *  • Stores the essential attributes of one set:
- *      - stroke, reps, distance per rep (canonical in meters),
+ *      - stroke, reps, distance per rep (exact, via Distance value object),
  *      - effort level, optional notes, course context (SCY/SCM/LCM),
  *      - optional equipment modifiers.
  *  • Validates and normalizes distance so it is always a legal multiple of the pool length.
- *      - If an invalid distance is given (e.g., 75m in a 50m pool), it is automatically snapped
- *        to the nearest valid multiple (rounding policy defined in Distance utility).
- *  • Keeps the model consistent for pace calculations, avoiding invalid or ambiguous reps.
+ *      - If an invalid distance is given (e.g., 75 in a 50m pool), it is snapped
+ *        to the nearest valid multiple using ROUND UP.
+ *  • Keeps the model consistent for pace calculations; pacing is computed elsewhere.
  *
  * Design notes:
- *  • Distances are stored in meters internally to keep calculations uniform regardless of pool unit.
- *  • The associated Course is always required; all distance normalization depends on it.
+ *  • Distances are stored with exact internal units (0.0001 m) in the Distance value object.
+ *  • Course is required; distance normalization depends on it.
  *  • Equipment is modeled as an EnumSet so multiple training aids can be applied together.
- *  • This class is lightweight and contains no pacing logic — goal/interval/rest are calculated
- *    externally by PacePolicy implementations (e.g., DefaultPacePolicy).
- *
- * Example usage:
- *   SwimSet set = new SwimSet(StrokeType.FREESTYLE, 1,
- *                              Distance.yardsToMeters(50),
- *                              Effort.RACE_PACE, Course.SCY, "desc");
- *   set.addEquipment(Equipment.FINS);
- *   // toString -> SwimSet{stroke=FREESTYLE, reps=1, distancePerRepMeters=46, effort=RACE_PACE, course=SCY, equipment=[FINS]}
  */
 public class SwimSet {
 
     private StrokeType stroke;
     private int reps;
-    private int distancePerRepMeters; // canonical distance in meters (snapped to course multiple)
+    private Distance distancePerRep; // exact (canonical stored inside Distance)
     private Effort effort;
-    private String notes;             // optional
-    private Course course;            // pool context for this set
+    private String notes;            // optional
+    private Course course;           // pool context for this set
 
     // Equipment used for this set (optional; defaults to none)
     private Set<Equipment> equipment = EnumSet.noneOf(Equipment.class);
 
     // --- Constructors ---
 
-    public SwimSet(StrokeType stroke, int reps, int distancePerRepMeters, Effort effort, Course course, String notes) {
+    public SwimSet(StrokeType stroke,
+                   int reps,
+                   Distance distancePerRep,
+                   Effort effort,
+                   Course course,
+                   String notes) {
         if (reps < 1) throw new IllegalArgumentException("reps must be >= 1");
-        if (distancePerRepMeters <= 0) throw new IllegalArgumentException("distancePerRepMeters must be > 0");
+        if (distancePerRep == null || distancePerRep.rawUm4() <= 0)
+            throw new IllegalArgumentException("distancePerRep must be > 0");
         if (course == null) throw new IllegalArgumentException("course must not be null");
 
         this.stroke = stroke;
@@ -65,13 +58,17 @@ public class SwimSet {
         this.notes = (notes == null ? "" : notes);
         this.course = course;
 
-        // Snap distance to a legal multiple of the pool length (round UP to mimic common UX)
-        this.distancePerRepMeters = Distance.toMultipleOfCourse(distancePerRepMeters, course, MultipleRounding.UP);
+        // Snap distance to a legal multiple of the pool length (ROUND UP).
+        this.distancePerRep = snapUpToCourseMultiple(distancePerRep, course);
     }
 
     // Convenience (no notes)
-    public SwimSet(StrokeType stroke, int reps, int distancePerRepMeters, Effort effort, Course course) {
-        this(stroke, reps, distancePerRepMeters, effort, course, "");
+    public SwimSet(StrokeType stroke,
+                   int reps,
+                   Distance distancePerRep,
+                   Effort effort,
+                   Course course) {
+        this(stroke, reps, distancePerRep, effort, course, "");
     }
 
     // --- Getters / Setters ---
@@ -85,10 +82,11 @@ public class SwimSet {
         this.reps = reps;
     }
 
-    public int getDistancePerRepMeters() { return distancePerRepMeters; }
-    public void setDistancePerRepMeters(int distancePerRepMeters) {
-        if (distancePerRepMeters <= 0) throw new IllegalArgumentException("distancePerRepMeters must be > 0");
-        this.distancePerRepMeters = Distance.toMultipleOfCourse(distancePerRepMeters, this.course, MultipleRounding.UP);
+    public Distance getDistancePerRep() { return distancePerRep; }
+    public void setDistancePerRep(Distance distancePerRep) {
+        if (distancePerRep == null || distancePerRep.rawUm4() <= 0)
+            throw new IllegalArgumentException("distancePerRep must be > 0");
+        this.distancePerRep = snapUpToCourseMultiple(distancePerRep, this.course);
     }
 
     public Effort getEffort() { return effort; }
@@ -102,7 +100,7 @@ public class SwimSet {
         if (course == null) throw new IllegalArgumentException("course must not be null");
         this.course = course;
         // Re-snap existing distance to the new course
-        this.distancePerRepMeters = Distance.toMultipleOfCourse(this.distancePerRepMeters, this.course, MultipleRounding.UP);
+        this.distancePerRep = snapUpToCourseMultiple(this.distancePerRep, this.course);
     }
 
     public Set<Equipment> getEquipment() { return equipment; }
@@ -127,11 +125,31 @@ public class SwimSet {
         return "SwimSet{" +
                 "stroke=" + stroke +
                 ", reps=" + reps +
-                ", distancePerRepMeters=" + distancePerRepMeters +
+                ", distancePerRep=" + distancePerRep +
                 ", effort=" + effort +
                 ", course=" + course +
                 (equipment != null && !equipment.isEmpty() ? ", equipment=" + equipment : "") +
                 (notes != null && !notes.isBlank() ? ", notes='" + notes + '\'' : "") +
                 '}';
+    }
+
+    // --- Helpers ---
+
+    /**
+     * Snap a distance UP to the nearest legal multiple of the pool length for the given course.
+     * Exact integer math on canonical units (0.0001 m), no floating-point drift.
+     */
+    private static Distance snapUpToCourseMultiple(Distance distance, Course course) {
+        Distance poolLen = course.getLength();
+        long d = distance.rawUm4();
+        long p = poolLen.rawUm4();
+        if (p <= 0) return distance; // safety
+
+        long multiples = d / p;
+        if (d % p != 0) multiples++; // round UP
+        long snapped = Math.max(p, Math.multiplyExact(multiples, p)); // at least one pool length
+
+        // Preserve the user's preferred display unit for the set distance
+        return Distance.ofCanonicalUm4(snapped, distance.displayUnit());
     }
 }

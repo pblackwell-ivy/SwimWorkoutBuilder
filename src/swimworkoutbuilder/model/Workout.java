@@ -1,6 +1,7 @@
 package swimworkoutbuilder.model;
 
 import swimworkoutbuilder.model.enums.Course;
+import swimworkoutbuilder.model.units.Distance;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,9 +99,26 @@ public class Workout {
         groups.set(j, a);
     }
 
-    // --- Distance helpers (meters, since SwimSet stores meters) ---
+    // --- Distance helpers ---
+
+    /**
+     * NEW: Sum of group distances for a single pass across all groups, as a Distance.
+     * Uses existing group meter totals and wraps them as Distance for now.
+     * (Once SetGroup is Distance-aware, this method can sum canonically without conversion.)
+     */
+    public Distance singlePassDistance() {
+        return Distance.ofMeters(singlePassDistanceMeters());
+    }
+
+    /**
+     * NEW: Total distance including group repeats, as a Distance.
+     */
+    public Distance totalDistance() {
+        return Distance.ofMeters(totalDistanceMeters());
+    }
 
     /** Sum of group distances for a single pass across all groups (meters). */
+    @Deprecated
     public int singlePassDistanceMeters() {
         int sum = 0;
         for (SetGroup g : groups) {
@@ -110,6 +128,7 @@ public class Workout {
     }
 
     /** Total distance including group repeats (meters). */
+    @Deprecated
     public int totalDistanceMeters() {
         int sum = 0;
         for (SetGroup g : groups) {

@@ -2,16 +2,22 @@ package swimworkoutbuilder.model.enums;
 
 /**
  * Effort levels are essential for creating goal-oriented structured workouts.
+ *
  * v1: enum name + long description
  * v2: added label and short description for UI
- * v3: added paceMultiplier (scales seed /100) and restAllowanceSec (seconds added to goal for interval)
+ * v3: added paceMultiplier (scales seed /100) and restAllowanceSec (legacy interval hook)
+ *
+ * Notes in v4:
+ *  • paceMultiplier is still included for legacy/future experimentation, but DefaultPacePolicy
+ *    primarily drives rest/interval with distance × effort curves (restPercent).
+ *  • Rest allowance (seconds) is retained but currently unused in canonical policy; left as a hook.
  */
 public enum Effort {
     EASY(
             "Easy",
             "Warmup/cooldown, active recovery",
             "Active recovery, technique focus, light pace, minimal exertion. Used between challenging sets or for warm-up/cool-down.",
-            1.55, 20    // <- was 1.70, but think it's between 1.45 and 1.50.  Will tune more.
+            1.55, 20
     ),
     ENDURANCE(
             "Endurance",
@@ -43,6 +49,7 @@ public enum Effort {
             "All-out, maximal effort. Short bursts (≤25–50m) at top speed, long recovery required. Focus on power, explosiveness, and pure speed.",
             0.95, 60
     );
+
     // v1: label and long description
     private final String label;
     private final String longDescription;
@@ -67,10 +74,14 @@ public enum Effort {
     public String getShortDescription() { return shortDescription; }
     public String getLongDescription() { return longDescription; }
 
-    /** Multiplier applied to seed pace per 100 for this effort level. */
+    /**
+     * Legacy multiplier applied to seed pace per 100 for this effort level.
+     * In canonical math we still use this for initial tuning,
+     * but DefaultPacePolicy combines it with DistanceFactors and rest curves.
+     */
     public double paceMultiplier() { return paceMultiplier; }
 
-    /** Rest allowance (seconds) added to goal when computing interval. */
+    /** Legacy rest allowance (seconds). Not currently used in DefaultPacePolicy. */
     public int restAllowanceSec() { return restAllowanceSec; }
 
     @Override
