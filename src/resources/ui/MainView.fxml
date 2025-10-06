@@ -7,72 +7,113 @@
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.RadioButton?>
-<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.control.TreeView?>
-<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<?import javafx.scene.control.TextArea?>
-<BorderPane maxHeight="-Infinity"
-            maxWidth="-Infinity"
-            minHeight="-Infinity"
-            minWidth="-Infinity"
-            prefHeight="781.0"
-            prefWidth="1160.0"
-            xmlns="http://javafx.com/javafx/25"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="swimworkoutbuilder.ui.MainViewController">
+<?import javafx.scene.control.SeparatorMenuItem?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.control.Button?>
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="781.0" prefWidth="1160.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="swimworkoutbuilder.ui.MainViewController">
 
     <top>
         <MenuBar BorderPane.alignment="CENTER">
             <menus>
-                <Menu text="File"><items><MenuItem text="Close" /></items></Menu>
-                <Menu text="Swimmer">
+                <Menu text="File">
                     <items>
-                        <MenuItem text="New Swimmer…" onAction="#handleNewSwimmer"/>
+                        <MenuItem text="Close" />
                     </items>
                 </Menu>
-                <Menu text="Edit"><items><MenuItem text="Delete" /></items></Menu>
-                <Menu text="Help"><items><MenuItem onAction="#handleAbout" text="About" /></items></Menu>
+                <Menu text="Swimmer">
+                    <items>
+                        <MenuItem onAction="#handleNewSwimmer" text="New Swimmer…" />
+                        <SeparatorMenuItem />
+                        <!-- NEW: opens SeedForm.fxml for the active swimmer -->
+                        <MenuItem onAction="#handleEditSeeds" text="Seed Times…" />
+                    </items>
+                </Menu>
+
+                <!-- NEW: workout CRUD + building -->
+                <Menu text="Workout">
+                    <items>
+                        <MenuItem onAction="#handleNewWorkout"    text="New Workout…" />
+                        <MenuItem onAction="#handleEditWorkout"   text="Edit Workout…" />
+                        <MenuItem onAction="#handleDeleteWorkout" text="Delete Workout…" />
+                        <SeparatorMenuItem />
+                        <MenuItem onAction="#handleAddGroup"      text="Add Group…" />
+                        <MenuItem onAction="#handleAddSet"        text="Add Set…" />
+                    </items>
+                </Menu>
+                <Menu text="Edit">
+                    <items>
+                        <MenuItem text="Delete" />
+                    </items>
+                </Menu>
+                <Menu text="Help">
+                    <items>
+                        <MenuItem onAction="#handleAbout" text="About" />
+                    </items>
+                </Menu>
             </menus>
         </MenuBar>
     </top>
 
-    <left>
-        <VBox fx:id="leftPane" prefWidth="260.0" spacing="8.0" BorderPane.alignment="CENTER">
-            <children>
-                <Label text="Workout" />
-                <TreeView fx:id="workoutTree" prefWidth="200.0" VBox.vgrow="ALWAYS" />
-            </children>
-            <padding>
-                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-            </padding>
-        </VBox>
-    </left>
-
     <center>
-        <VBox fx:id="centerPane" prefHeight="600.0" prefWidth="700.0" BorderPane.alignment="CENTER">
-            <children>
-                <TabPane prefHeight="200.0" prefWidth="200.0" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
-                    <tabs>
-                        <Tab text="Set Editor"><content><AnchorPane /></content></Tab>
-                        <Tab text="Preview">
-                            <content>
-                                <TextArea fx:id="previewArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS"/>
-                            </content>
-                        </Tab>
-                    </tabs>
-                </TabPane>
-            </children>
-        </VBox>
+        <SplitPane fx:id="mainSplit" dividerPositions="0.33" BorderPane.alignment="CENTER">
+            <items>
+                <!-- LEFT: workout tree -->
+                <VBox fx:id="leftPane" prefWidth="500.0" spacing="8">
+
+                    <children>
+                        <!-- Workout Header (MVP layout) -->
+                        <VBox fx:id="workoutHeader" spacing="6" styleClass="workout-header">
+                            <Label fx:id="hdrSwimmer" styleClass="hdr-line"        text="Swimmer: —"/>
+                            <Label fx:id="hdrName"    styleClass="hdr-title"       text="—"/>
+                            <Label fx:id="hdrNotes"   styleClass="hdr-notes"       text="" wrapText="true"/>
+
+                            <Label text="Workout summary:" styleClass="hdr-strong"/>
+                            <VBox spacing="2">
+                                <Label fx:id="hdrSummaryDistance" styleClass="hdr-strong" text="— yds"/>
+                                <Label fx:id="hdrSummaryDuration" styleClass="hdr-line"   text="Duration:"/>
+                                <Label fx:id="hdrSummarySwim"     styleClass="hdr-line"   text="— swimming"/>
+                                <Label fx:id="hdrSummaryRest"     styleClass="hdr-line"   text="— rest"/>
+                                <Label fx:id="hdrSummaryTotal"    styleClass="hdr-line"   text="— total"/>
+                            </VBox>
+
+                            <!-- MVP: fixed pool length line (we’ll turn this into radios later) -->
+                            <Label fx:id="hdrPool" styleClass="hdr-line" text="Pool Length: 25 yds"/>
+                        </VBox>
+                        <!-- Builder toolbar: lets you add even when the tree is empty -->
+                        <HBox spacing="8">
+                            <children>
+                                <Label text="Workout" />
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button text="Add Group…" onAction="#handleAddGroup" />
+                                <Button text="Add Set…"   onAction="#handleAddSet" />
+                            </children>
+                        </HBox>
+
+                        <!-- Tree -->
+                        <TreeView fx:id="workoutTree" minWidth="400.0" VBox.vgrow="ALWAYS" />
+                    </children>
+                    <padding><Insets bottom="10" left="10" right="10" top="10" /></padding>
+                </VBox>
+
+                <!-- CENTER: hidden holder for Preview/Editor -->
+                <StackPane fx:id="centerPane" managed="false" visible="false">
+                    <TabPane fx:id="centerTabs" tabClosingPolicy="UNAVAILABLE" />
+                </StackPane>
+            </items>
+        </SplitPane>
     </center>
 
     <right>
@@ -81,37 +122,42 @@
                 <TitledPane text="Seeds &amp; Units">
                     <content>
                         <GridPane prefHeight="133.0" prefWidth="258.0">
-                            <padding><Insets top="8" right="10" bottom="10" left="10" /></padding>
+                            <padding>
+                                <Insets bottom="10.0" left="10.0" right="10.0" top="8.0" />
+                            </padding>
                             <columnConstraints>
-                                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
-                                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
+                                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
                             </columnConstraints>
                             <rowConstraints>
-                                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
-                                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
-                                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
-                                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                             </rowConstraints>
 
-                            <!-- Moved here; spans both columns -->
-                            <Label fx:id="lblSwimmer"
-                                   text="Swimmer: —"
-                                   style="-fx-font-weight: bold;"
-                                   GridPane.columnSpan="2"/>
+                            <!-- Swimmer label spans both columns -->
+                            <Label fx:id="lblSwimmer" style="-fx-font-weight: bold;" text="Swimmer: —" GridPane.columnSpan="2" />
 
-                            <Label text="Course:" GridPane.rowIndex="1"/>
-                            <ChoiceBox fx:id="courseChoice" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                            <Label text="Course:" GridPane.rowIndex="1" />
+                            <ChoiceBox fx:id="courseChoice" prefWidth="150.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
 
-                            <Label text="Units:" GridPane.rowIndex="2"/>
-                            <HBox alignment="CENTER_LEFT" spacing="10.0"
-                                  GridPane.columnIndex="1" GridPane.rowIndex="2">
-                                <fx:define>
-                                    <ToggleGroup fx:id="unitsGroup"/>
-                                </fx:define>
-
+                            <Label text="Units:" GridPane.rowIndex="2" />
+                            <HBox alignment="CENTER_LEFT" spacing="10.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
                                 <children>
-                                    <RadioButton fx:id="rbMeters" text="Meters" toggleGroup="$unitsGroup"/>
-                                    <RadioButton fx:id="rbYards" text="Yards" selected="true" toggleGroup="$unitsGroup"/>
+                                    <!-- Declare the group on the first radio -->
+                                    <RadioButton fx:id="rbMeters" text="Meters">
+                                        <toggleGroup>
+                                            <ToggleGroup fx:id="unitsGroup" />
+                                        </toggleGroup>
+                                    </RadioButton>
+
+                                    <!-- Reference that same group on the second radio -->
+                                    <RadioButton fx:id="rbYards" selected="true" text="Yards">
+                                        <toggleGroup>
+                                            <fx:reference source="unitsGroup" />
+                                        </toggleGroup>
+                                    </RadioButton>
                                 </children>
                             </HBox>
                         </GridPane>
@@ -124,9 +170,9 @@
     <bottom>
         <HBox fx:id="statusBar" prefHeight="20.0" prefWidth="744.0" BorderPane.alignment="CENTER">
             <children>
-                <Label fx:id="lblStatus" text="Ready"/>
+                <Label fx:id="lblStatus" text="Ready" />
             </children>
         </HBox>
-
     </bottom>
+
 </BorderPane>

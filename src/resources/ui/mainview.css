@@ -1,0 +1,133 @@
+/* =========================================================
+   MAINVIEW.CSS — Compact card layout for SwimWorkoutBuilder
+   ---------------------------------------------------------
+   Purpose:
+   - Styles the workout tree cards (groups + sets)
+   - Styles the workout header
+   - Removes default TreeView row highlighting
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   WORKOUT HEADER (top section above the TreeView)
+   --------------------------------------------------------- */
+.workout-header {
+  -fx-background-color: linear-gradient(to bottom, #f7f7f7, #efefef);
+  -fx-background-radius: 8;
+  -fx-border-color: #d7d7d7;
+  -fx-border-radius: 8;
+  -fx-padding: 8 10 8 10;
+  -fx-spacing: 4;
+}
+
+.hdr-title  { -fx-font-size: 14px; -fx-font-weight: 700; }
+.hdr-strong { -fx-font-size: 12px; -fx-font-weight: 600; }
+.hdr-line   { -fx-font-size: 12px; }
+.hdr-notes  { -fx-font-size: 11px; -fx-font-style: italic; -fx-text-fill: #555; }
+
+/* ---------------------------------------------------------
+   TREEVIEW GLOBAL TUNING
+   --------------------------------------------------------- */
+
+/* Remove default focus / selection bar from entire row */
+.tree-cell:filled:selected,
+.tree-cell:filled:selected:focused,
+.tree-cell:filled:hover {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-background-radius: 0;
+}
+/* Keep the arrow visible in normal/selected states */
+.tree-view { -fx-mark-color: -fx-text-base-color; }
+.tree-disclosure-node > .arrow {
+  -fx-background-color: -fx-mark-color;
+}
+.tree-cell:filled:selected .tree-disclosure-node > .arrow,
+.tree-cell:filled:selected:focused .tree-disclosure-node > .arrow {
+  -fx-background-color: black;
+}
+/* Only add if you still see issues */
+.tree-disclosure-node > .arrow { -fx-background-color: -fx-text-base-color; }
+
+/* Reduce overall row height */
+.tree-cell {
+  -fx-padding: 2 4 2 20; /* top right bottom left */
+}
+
+/* Remove TreeView border & extra spacing (some themes add it) */
+.tree-view {
+  -fx-border-color: transparent;
+  -fx-background-insets: 0;
+  -fx-padding: 0;
+}
+
+/* ---------------------------------------------------------
+   CARD LOOK — for group/set “cards” inside TreeView rows
+   --------------------------------------------------------- */
+.tree-cell .work-card {
+  -fx-background-color: white;
+  -fx-background-radius: 8;
+  -fx-border-color: #dcdcdc;     /* was #2a8f2a green border for clarity */
+  -fx-border-width: 1;
+  -fx-border-radius: 8;
+  -fx-padding: 4 8 4 8;          /* compact */
+  -fx-border-insets: 0;
+}
+
+/* Compact header alignment */
+.work-card-header {
+  -fx-alignment: center-left;
+  -fx-spacing: 6;
+  -fx-padding: 0;
+}
+
+/* Title line — larger and bold */
+.work-card-title {
+  -fx-font-size: 15px;
+  -fx-font-weight: 700;
+  -fx-padding: 0;
+}
+
+/* Sub line — smaller, muted italic */
+.work-card-sub {
+  -fx-font-size: 12px;
+  -fx-font-style: italic;
+  -fx-text-fill: #555;
+  -fx-padding: 1 0 0 0;
+}
+
+/* ---------------------------------------------------------
+   BUTTON STYLING — inline “Edit”, “Add Set”, “Add Group”
+   --------------------------------------------------------- */
+.compact-btn {
+  -fx-font-size: 12px;
+  -fx-padding: 1 6 1 6;          /* short & narrow */
+  -fx-min-height: 18px;
+  -fx-max-height: 18px;
+  -fx-background-insets: 0;
+}
+
+/* ---------------------------------------------------------
+   SELECTION BEHAVIOR — color the card only (not whole row)
+   --------------------------------------------------------- */
+
+/* When selected, color the card background instead of the row */
+.tree-cell:filled:selected .work-card {
+  -fx-background-color: -fx-selection-bar;
+  -fx-border-color: derive(-fx-selection-bar, -15%);
+  -fx-padding: 2 4 2 8;          /* left=8 leaves space for arrow */
+}
+
+/* Keep text visible on selected cards */
+.tree-cell:filled:selected .work-card .label {
+  -fx-text-fill: -fx-selection-bar-text; /* usually white */
+}
+
+/* ---------------------------------------------------------
+   OPTIONAL: STATUS BAR (bottom of MainView)
+   --------------------------------------------------------- */
+#statusBar {
+  -fx-background-color: #f3f3f3;
+  -fx-border-color: #ccc;
+  -fx-border-width: 1 0 0 0;
+  -fx-padding: 4 8 4 8;
+}

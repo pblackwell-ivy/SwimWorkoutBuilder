@@ -8,38 +8,29 @@ import swimworkoutbuilder.model.enums.Effort;
 import swimworkoutbuilder.model.enums.Equipment;
 import swimworkoutbuilder.model.enums.StrokeType;
 
+import java.util.Objects;
 import java.util.Set;
 
 /**
  * Multiplier-based MVP policy for computing goal, interval, and rest.
- *
- * Core design:
- *  • Canonical math is done with speed (m/s) derived from the swimmer's SeedPace.
- *  • Goal time (seconds) = (repDistanceMeters / speedMps) × compositeFactor
- *      where compositeFactor = effort × distanceBucket × course × equipment × fatigue(=1.0 for MVP)
- *  • Rest time (seconds) = rounded(goal) × restPercent(effort, r),
- *      where r = (rep distance) / (seed's original distance)
- *  • Interval rounded to nearest 5 seconds.
- *
- * Notes:
- *  • DistanceFactors accepts Distance directly and buckets by nominal meters (25/50/75/...).
- *  • No floating-point unit conversions inside core math; Distance is exact internally.
  */
 public class DefaultPacePolicy implements PacePolicy {
 
-    // Flip to false to silence debug printing
     private static final boolean DEBUG = false;
 
     @Override
     public double goalSeconds(Workout workout, SwimSet set, Swimmer swimmer, int repIndex) {
-        if (workout == null || set == null || swimmer == null)
-            throw new IllegalArgumentException("workout, set, and swimmer are required.");
+        // Validate required references early to avoid NPEs in callers.
+        Objects.requireNonNull(workout, "workout");
+        Objects.requireNonNull(set, "set");
+        Objects.requireNonNull(swimmer, "swimmer");
 
         // 1) Seed (canonical speed)
         StrokeType stroke = set.getStroke();
         SeedPace seed = swimmer.getSeedTime(stroke);
         if (seed == null) throw new IllegalStateException("Missing seed for stroke: " + stroke);
         double speedMps = seed.speedMps(); // canonical
+        if (speedMps <= 0.0) throw new IllegalStateException("Seed speed must be > 0 m/s for " + stroke);
 
         // 2) Multipliers
         Effort effort = set.getEffort();
@@ -65,21 +56,21 @@ public class DefaultPacePolicy implements PacePolicy {
 
     @Override
     public int restSeconds(Workout workout, SwimSet set, Swimmer swimmer, int repIndex) {
-        if (workout == null || set == null || swimmer == null)
-            throw new IllegalArgumentException("workout, set, and swimmer are required.");
+        Objects.requireNonNull(workout, "workout");
+        Objects.requireNonNull(set, "set");
+        Objects.requireNonNull(swimmer, "swimmer");
 
-        // Round goal first, then compute rest as a percentage
         int goalRounded = (int) Math.round(goalSeconds(workout, set, swimmer, repIndex));
 
-        // r = (rep distance) / (seed's original distance)
         SeedPace seed = swimmer.getSeedTime(set.getStroke());
         if (seed == null) throw new IllegalStateException("Missing seed for " + set.getStroke());
 
         double repMeters  = set.getDistancePerRep().toMeters();
-        double seedMeters = seed.getOriginalDistance().toMeters(); // e.g., 100y or 100m (in meters)
-        double r = distanceRatio(repMeters, seedMeters);
+        double seedMeters = seed.getOriginalDistance().toMeters();
 
+        double r = distanceRatio(repMeters, seedMeters);
         double pct = restPercent(set.getEffort(), r);
+
         int rest = (int) Math.round(goalRounded * pct);
 
         if (DEBUG) {
@@ -104,7 +95,7 @@ public class DefaultPacePolicy implements PacePolicy {
     @Override
     public String timingLabel(Workout workout, SwimSet set, Swimmer swimmer, int repIndex) {
         int rest = restSeconds(workout, set, swimmer, repIndex);
-        return "rest :" + rest;
+        return "rest: " + rest;
     }
 
     // --- helpers ---
@@ -155,11 +146,6 @@ public class DefaultPacePolicy implements PacePolicy {
 
     /**
      * Rest percentage as a function of effort and distance ratio r.
-     * Curves chosen from prior notes:
-     *  - EASY: ~10% at <=1.0, ~18% by 4.0, taper toward ~5% very long
-     *  - ENDURANCE: ~4–5% nearly flat
-     *  - THRESHOLD: ~6.7% at <=1.0 easing toward ~4% long
-     *  - RACE/VO2/SPRINT: ~70% at <=1.0, ~25% by 4.0, ~5% very long
      */
     private static double restPercent(Effort e, double r) {
         if (e == null) return 0.06;

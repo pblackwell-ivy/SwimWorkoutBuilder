@@ -1,9 +1,9 @@
 package swimworkoutbuilder.model;
 
 import swimworkoutbuilder.model.enums.StrokeType;
-import swimworkoutbuilder.model.pacing.SeedPace;   // <-- add this
-import swimworkoutbuilder.model.units.Distance;    // only if you use the overloads
-import swimworkoutbuilder.model.units.TimeSpan;    // only if you use the overloads
+import swimworkoutbuilder.model.pacing.SeedPace;
+import swimworkoutbuilder.model.units.Distance;
+import swimworkoutbuilder.model.units.TimeSpan;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -11,11 +11,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Represents a swimmer using the workout builder.
- * Stores identity and baseline seed paces (per stroke). Each seed is a {@link SeedPace}
- * that preserves the original entry (distance+unit and time) and caches canonical speed (m/s).
- *
- * Ergonomic overloads let you set seeds as "per-100y" or "per-100m" without extra boilerplate.
+ * Represents an individual swimmer with personal details and performance data.
  */
 public class Swimmer {
     private final UUID id;
@@ -39,8 +35,8 @@ public class Swimmer {
     public Swimmer(UUID id, String firstName, String lastName, String preferredName, String teamName) {
         if (id == null) throw new IllegalArgumentException("id must not be null");
         this.id = id;
-        this.firstName = firstName;
-        this.lastName = lastName;
+        this.firstName = Objects.requireNonNull(firstName, "firstName");
+        this.lastName  = Objects.requireNonNull(lastName, "lastName");
         this.preferredName = preferredName;
         this.teamName = teamName;
     }
@@ -53,8 +49,8 @@ public class Swimmer {
     public String getPreferredName() { return preferredName; }
     public String getTeamName() { return teamName; }
 
-    public void setFirstName(String firstName) { this.firstName = firstName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
+    public void setFirstName(String firstName) { this.firstName = Objects.requireNonNull(firstName, "firstName"); }
+    public void setLastName(String lastName) { this.lastName = Objects.requireNonNull(lastName, "lastName"); }
     public void setPreferredName(String preferredName) { this.preferredName = preferredName; }
     public void setTeamName(String teamName) { this.teamName = teamName; }
 
@@ -62,6 +58,7 @@ public class Swimmer {
 
     /** Returns the baseline seed for the given stroke, or null if not set. */
     public SeedPace getSeedTime(StrokeType stroke) {
+        Objects.requireNonNull(stroke, "stroke");
         return seedPaces.get(stroke);
     }
 
@@ -72,36 +69,46 @@ public class Swimmer {
         seedPaces.put(stroke, seed);
     }
 
-    /** Convenience: set a seed defined as "per 100 yards" in <b>seconds</b>. */
+    /** Convenience: set a seed defined as "per 100 yards" in seconds. */
     public void updateSeed100Y(StrokeType stroke, double secondsPer100Y) {
-        updateSeedTime(stroke,
-                new SeedPace(Distance.ofYards(100), TimeSpan.ofSeconds(secondsPer100Y)));
+        Objects.requireNonNull(stroke, "stroke");
+        if (secondsPer100Y <= 0) throw new IllegalArgumentException("secondsPer100Y must be > 0");
+        updateSeedTime(stroke, new SeedPace(Distance.ofYards(100), TimeSpan.ofSeconds(secondsPer100Y)));
     }
 
-    /** Convenience: set a seed defined as "per 100 meters" in <b>seconds</b>. */
+    /** Convenience: set a seed defined as "per 100 meters" in seconds. */
     public void updateSeed100M(StrokeType stroke, double secondsPer100M) {
-        updateSeedTime(stroke,
-                new SeedPace(Distance.ofMeters(100), TimeSpan.ofSeconds(secondsPer100M)));
+        Objects.requireNonNull(stroke, "stroke");
+        if (secondsPer100M <= 0) throw new IllegalArgumentException("secondsPer100M must be > 0");
+        updateSeedTime(stroke, new SeedPace(Distance.ofMeters(100), TimeSpan.ofSeconds(secondsPer100M)));
     }
 
     /** Convenience: explicit distance + time overload (e.g., 200m in 120.0s). */
     public void updateSeedTime(StrokeType stroke, Distance seedDistance, TimeSpan seedTime) {
+        Objects.requireNonNull(stroke, "stroke");
         Objects.requireNonNull(seedDistance, "seedDistance");
         Objects.requireNonNull(seedTime,     "seedTime");
         updateSeedTime(stroke, new SeedPace(seedDistance, seedTime));
     }
 
-    public boolean hasSeed(StrokeType stroke) { return seedPaces.containsKey(stroke); }
+    public boolean hasSeed(StrokeType stroke) {
+        Objects.requireNonNull(stroke, "stroke");
+        return seedPaces.containsKey(stroke);
+    }
 
-    public void clearSeed(StrokeType stroke) { seedPaces.remove(stroke); }
+    public void clearSeed(StrokeType stroke) {
+        Objects.requireNonNull(stroke, "stroke");
+        seedPaces.remove(stroke);
+    }
 
     /** Removes all seeds for this swimmer. */
     public void clearAllSeeds() { seedPaces.clear(); }
 
-    // --- Derived helpers (nice to have) ---
+    // --- Derived helpers ---
 
     /** Returns canonical speed (m/s) for a stroke, or NaN if no seed set. */
     public double speedMps(StrokeType stroke) {
+        Objects.requireNonNull(stroke, "stroke");
         SeedPace s = seedPaces.get(stroke);
         return (s == null) ? Double.NaN : s.speedMps();
     }

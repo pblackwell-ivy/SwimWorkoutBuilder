@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="swimworkoutbuilder.ui.SetFormController"
+            prefWidth="420" prefHeight="340">
+
+    <center>
+        <GridPane hgap="10" vgap="10" BorderPane.alignment="CENTER">
+            <padding>
+                <Insets top="12" right="12" bottom="12" left="12"/>
+            </padding>
+
+            <columnConstraints>
+                <ColumnConstraints minWidth="140"/>
+                <ColumnConstraints hgrow="ALWAYS"/>
+            </columnConstraints>
+
+            <Label text="Add / Edit Set"
+                   style="-fx-font-size: 16; -fx-font-weight: bold;"
+                   GridPane.columnSpan="2"/>
+
+            <Label text="Stroke:" GridPane.rowIndex="1"/>
+            <ChoiceBox fx:id="cbStroke" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+            <Label text="Effort:" GridPane.rowIndex="2"/>
+            <ChoiceBox fx:id="cbEffort" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+            <Label text="Reps:" GridPane.rowIndex="3"/>
+            <Spinner fx:id="spReps" editable="true"
+                     GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+            <Label fx:id="lblDistance" text="Distance (per rep):" GridPane.rowIndex="4"/>
+            <Spinner fx:id="spDistance" editable="true"
+                     GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+
+            <Label text="Equipment:" GridPane.rowIndex="5"/>
+            <FlowPane hgap="8" vgap="6" GridPane.columnIndex="1" GridPane.rowIndex="5">
+                <children>
+                    <CheckBox fx:id="chkPullBuoy" text="Pull Buoy"/>
+                    <CheckBox fx:id="chkPaddles"  text="Paddles"/>
+                    <CheckBox fx:id="chkSnorkel"  text="Snorkel"/>
+                    <CheckBox fx:id="chkFins"     text="Fins"/>
+                </children>
+            </FlowPane>
+
+            <Label text="Notes:" GridPane.rowIndex="6" GridPane.valignment="TOP"/>
+            <TextArea fx:id="taNotes" prefRowCount="3" wrapText="true"
+                      GridPane.columnIndex="1" GridPane.rowIndex="6"/>
+        </GridPane>
+    </center>
+
+    <bottom>
+        <HBox spacing="10" alignment="CENTER_RIGHT" BorderPane.alignment="CENTER">
+            <padding><Insets top="0" right="12" bottom="12" left="12"/></padding>
+            <Button fx:id="btnCancel" text="Cancel" onAction="#onCancel"/>
+            <Button fx:id="btnSave"   text="Save"   defaultButton="true" onAction="#onSave"/>
+        </HBox>
+    </bottom>
+</BorderPane>

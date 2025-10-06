@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox spacing="12" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="swimworkoutbuilder.ui.SeedFormController">
+    <padding>
+        <Insets bottom="14" left="14" right="14" top="14" />
+    </padding>
+
+    <!-- Title -->
+    <Label fx:id="lblTitle" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Seed Times" />
+
+    <!-- Swimmer + units -->
+    <GridPane hgap="8" vgap="6">
+        <columnConstraints>
+            <ColumnConstraints halignment="RIGHT" minWidth="90" />
+            <ColumnConstraints hgrow="ALWAYS" />
+        </columnConstraints>
+
+        <children>
+            <Label text="Swimmer:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+            <Label fx:id="lblSwimmer" text="—" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+            <Label text="Units:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+            <HBox spacing="16" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                <children>
+                    <RadioButton fx:id="rbMeters" text="Meters" />
+                    <RadioButton fx:id="rbYards" text="Yards" />
+                </children>
+            </HBox>
+        </children>
+      <rowConstraints>
+         <RowConstraints />
+         <RowConstraints />
+      </rowConstraints>
+    </GridPane>
+   <Label fx:id="lblInstructions" text="A stroke mutst have a seed time before adding to a workout" />
+
+    <!-- Per-stroke per-100 fields -->
+    <TitledPane expanded="true" text="Per-100 seed times (seconds)">
+        <content>
+            <GridPane hgap="8" vgap="6">
+                <padding>
+                    <Insets bottom="8" left="8" right="8" top="8" />
+                </padding>
+                <columnConstraints>
+                    <ColumnConstraints halignment="RIGHT" minWidth="120" />
+                    <ColumnConstraints hgrow="ALWAYS" />
+                </columnConstraints>
+
+                <children>
+                    <Label text="Freestyle:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                    <TextField fx:id="tfFree" promptText="e.g., 78.0" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                    <Label text="Backstroke:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                    <TextField fx:id="tfBack" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                    <Label text="Breaststroke:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                    <TextField fx:id="tfBreast" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                    <Label text="Butterfly:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                    <TextField fx:id="tfFly" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+                    <Label text="Individual Medley:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+                    <TextField fx:id="tfIM" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+
+
+                    <Label text="Kick:" GridPane.columnIndex="0" GridPane.rowIndex="5" />
+                    <TextField fx:id="tfKick"  GridPane.columnIndex="1" GridPane.rowIndex="5" />
+
+                    <Label text="Drill:" GridPane.columnIndex="0" GridPane.rowIndex="6" />
+                    <TextField fx:id="tfDrill"  GridPane.columnIndex="1" GridPane.rowIndex="6" />
+
+
+                </children>
+            <rowConstraints>
+               <RowConstraints />
+               <RowConstraints />
+               <RowConstraints />
+               <RowConstraints />
+               <RowConstraints />
+               <RowConstraints />
+               <RowConstraints />
+            </rowConstraints>
+            </GridPane>
+        </content>
+    </TitledPane>
+
+    <!-- Buttons -->
+    <HBox alignment="CENTER_RIGHT" spacing="8">
+        <children>
+            <Region VBox.vgrow="ALWAYS" />
+            <Button fx:id="btnCancel" onAction="#handleCancel" text="Cancel" />
+            <Button fx:id="btnSave" defaultButton="true" onAction="#handleSave" text="Save" />
+        </children>
+    </HBox>
+</VBox>

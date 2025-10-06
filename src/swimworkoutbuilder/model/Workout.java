@@ -9,26 +9,74 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * A structured swim workout designed for a specific swimmer.
- * MVP: container + metadata. All timing math is handled by PacePolicy/WorkoutPrinter.
+ * Represents a structured swim workout for a specific swimmer.
+ *
+ * <p>{@code Workout} acts as a top-level container for all workout content —
+ * including metadata (name, notes, course) and a sequence of {@link SetGroup}s.
+ * It does not perform any pace or timing logic; those calculations are handled by
+ * the {@link swimworkoutbuilder.model.pacing.PacePolicy} implementations.</p>
+ *
+ * <h2>Responsibilities</h2>
+ * <ul>
+ *   <li>Encapsulate all metadata describing a workout (name, course, notes, swimmer ID).</li>
+ *   <li>Contain an ordered list of {@link SetGroup}s representing warmup, main, and cooldown phases.</li>
+ *   <li>Provide helper methods for reordering and measuring total workout distance.</li>
+ *   <li>Ensure all instances are associated with a swimmer via {@code swimmerId}.</li>
+ * </ul>
+ *
+ * <h2>Design Notes</h2>
+ * <ul>
+ *   <li>Workouts are immutable in ID but mutable in content (groups can be edited or rearranged).</li>
+ *   <li>Distances are measured canonically in meters via {@link Distance} for consistency.</li>
+ *   <li>This class is model-only; the UI and pacing logic are defined elsewhere.</li>
+ * </ul>
+ *
+ * <h2>Typical Usage</h2>
+ * <pre>{@code
+ * UUID swimmerId = swimmer.getId();
+ * Workout w = new Workout(swimmerId, "Tuesday Threshold", Course.SCY);
+ *
+ * SetGroup warmup = new SetGroup("Warmup", 1, 1);
+ * warmup.addSet(new SwimSet(StrokeType.FREESTYLE, 4, Distance.ofYards(50), Effort.EASY, w.getCourse(), "Smooth strokes"));
+ *
+ * w.addSetGroup(warmup);
+ * System.out.println(w.totalDistance());
+ * }</pre>
+ *
+ * @author Parker Blackwell
+ * @version MVP 1.0 (October 2025)
+ * @see SetGroup
+ * @see swimworkoutbuilder.model.pacing.PacePolicy
  */
 public class Workout {
 
+    // ----------------------------------------------------------
     // Identity & metadata
-    private final UUID id;
-    private UUID swimmerId;                 // the swimmer this workout is for
-    private String name;                    // e.g., "Tuesday Threshold"
-    private Course course;                  // SCY, SCM, or LCM
-    private String notes;                   // optional workout-level notes (theme, focus)
+    // ----------------------------------------------------------
+
+    private final UUID id;                    // Unique workout ID
+    private UUID swimmerId;                   // The swimmer this workout belongs to
+    private String name;                      // e.g., "Tuesday Threshold"
+    private Course course;                    // SCY, SCM, or LCM
+    private String notes;                     // Optional workout-level notes (theme, focus)
 
     // Defaults (used by printer between groups)
-    private int defaultRestBetweenGroupsSeconds = 0;  // applied between consecutive groups if group override not set
+    private int defaultRestBetweenGroupsSeconds = 0;
 
     // Contents
     private final List<SetGroup> groups = new ArrayList<>();
 
-    // --- Constructors ---
+    // ----------------------------------------------------------
+    // Constructors
+    // ----------------------------------------------------------
 
+    /**
+     * Creates a new workout with minimal metadata.
+     *
+     * @param swimmerId the swimmer this workout belongs to
+     * @param name the descriptive name of the workout (e.g. "Tuesday Threshold")
+     * @param course the pool course type (SCY, SCM, or LCM)
+     */
     public Workout(UUID swimmerId, String name, Course course) {
         this.id = UUID.randomUUID();
         this.swimmerId = Objects.requireNonNull(swimmerId, "swimmerId");
@@ -36,6 +84,15 @@ public class Workout {
         this.course = Objects.requireNonNull(course, "course");
     }
 
+    /**
+     * Creates a workout with full metadata and default rest settings.
+     *
+     * @param swimmerId the swimmer this workout belongs to
+     * @param name descriptive workout name
+     * @param course pool course type (SCY, SCM, or LCM)
+     * @param notes optional notes or theme
+     * @param defaultRestBetweenGroupsSeconds default rest between consecutive groups (≥0)
+     */
     public Workout(UUID swimmerId, String name, Course course, String notes, int defaultRestBetweenGroupsSeconds) {
         this.id = UUID.randomUUID();
         this.swimmerId = Objects.requireNonNull(swimmerId, "swimmerId");
@@ -45,8 +102,11 @@ public class Workout {
         this.defaultRestBetweenGroupsSeconds = Math.max(0, defaultRestBetweenGroupsSeconds);
     }
 
-    // --- Basic getters/setters ---
+    // ----------------------------------------------------------
+    // Basic getters/setters
+    // ----------------------------------------------------------
 
+    /** Unique identifier for this workout (immutable once created). */
     public UUID getId() { return id; }
 
     public UUID getSwimmerId() { return swimmerId; }
@@ -66,76 +126,87 @@ public class Workout {
         this.defaultRestBetweenGroupsSeconds = Math.max(0, seconds);
     }
 
-    // --- Groups management (ordered & mutable) ---
+    // ----------------------------------------------------------
+    // Group management (ordered & mutable)
+    // ----------------------------------------------------------
 
+    /** Returns the list of {@link SetGroup}s that make up this workout. */
     public List<SetGroup> getGroups() { return groups; }
 
+    /** Returns how many groups this workout currently contains. */
     public int getGroupCount() { return groups.size(); }
 
+    /** Appends a new group to the workout. Null values are ignored. */
     public void addSetGroup(SetGroup group) {
         if (group != null) groups.add(group);
     }
 
+    /** Inserts a group at a specific index (throws if index invalid). */
     public void insertSetGroup(int index, SetGroup group) {
         if (group == null) return;
-        groups.add(index, group); // will throw if index invalid (MVP: fail fast)
+        groups.add(index, group);
     }
 
+    /** Removes and returns the group at the specified index. */
     public SetGroup removeSetGroup(int index) {
         return groups.remove(index);
     }
 
+    /** Moves a group from one index to another, preserving relative order. */
     public void moveGroup(int fromIndex, int toIndex) {
         if (fromIndex == toIndex) return;
-        SetGroup g = groups.remove(fromIndex); // throws if fromIndex invalid
-        groups.add(toIndex, g);                // throws if toIndex invalid
+        SetGroup g = groups.remove(fromIndex);
+        groups.add(toIndex, g);
     }
 
+    /** Swaps the position of two groups in the list. */
     public void swapGroups(int i, int j) {
         if (i == j) return;
-        SetGroup a = groups.get(i); // throws if invalid
+        SetGroup a = groups.get(i);
         SetGroup b = groups.get(j);
         groups.set(i, b);
         groups.set(j, a);
     }
 
-    // --- Distance helpers ---
+    // ----------------------------------------------------------
+    // Distance helpers
+    // ----------------------------------------------------------
 
     /**
-     * NEW: Sum of group distances for a single pass across all groups, as a Distance.
-     * Uses existing group meter totals and wraps them as Distance for now.
-     * (Once SetGroup is Distance-aware, this method can sum canonically without conversion.)
+     * Returns the total distance for one full pass through all groups.
+     * <p>Uses the canonical meter-based representation via {@link Distance}.</p>
      */
     public Distance singlePassDistance() {
         return Distance.ofMeters(singlePassDistanceMeters());
     }
 
     /**
-     * NEW: Total distance including group repeats, as a Distance.
+     * Returns the total distance of the entire workout, including
+     * any group repetitions (e.g., “Main ×4” counts 4× its base distance).
      */
     public Distance totalDistance() {
         return Distance.ofMeters(totalDistanceMeters());
     }
 
-    /** Sum of group distances for a single pass across all groups (meters). */
+    /** Sum of group distances (in meters) for one pass. */
     @Deprecated
     public int singlePassDistanceMeters() {
         int sum = 0;
-        for (SetGroup g : groups) {
-            sum += g.singlePassDistanceMeters();
-        }
+        for (SetGroup g : groups) sum += g.singlePassDistanceMeters();
         return sum;
     }
 
-    /** Total distance including group repeats (meters). */
+    /** Total workout distance (in meters), including group repetitions. */
     @Deprecated
     public int totalDistanceMeters() {
         int sum = 0;
-        for (SetGroup g : groups) {
-            sum += g.totalDistanceMeters();
-        }
+        for (SetGroup g : groups) sum += g.totalDistanceMeters();
         return sum;
     }
+
+    // ----------------------------------------------------------
+    // Object overrides
+    // ----------------------------------------------------------
 
     @Override
     public String toString() {
